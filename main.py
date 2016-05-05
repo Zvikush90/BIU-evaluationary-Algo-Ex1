@@ -4,29 +4,68 @@ import model
 import os
 from model import CNN
 import ga
+import logging
+import sys
+from time import gmtime, strftime
+
+
+class StreamToLogger(object):
+    """
+    Fake file-like stream object that redirects writes to a logger instance.
+    """
+
+    def __init__(self, logger, log_level=logging.INFO):
+        self.logger = logger
+        self.log_level = log_level
+        self.linebuf = ''
+
+    def write(self, buf):
+        for line in buf.rstrip().splitlines():
+            self.logger.log(self.log_level, line.rstrip())
+
 
 def print_gen(i):
-    print "=========================================GEN " + str(i)+"========================================="
+    print "=========================================GEN " + str(i) + "========================================="
+
 
 def run_ga():
-    p_count = 20 #100
+    p_count = 1  # 100
 
     p = ga.population(p_count)
     print_gen(0)
     fitness_history = [ga.grade(p), ]
-    for i in xrange(100):
-        print_gen(i+1)
+    for i in xrange(1):
+        print_gen(i + 1)
         p = ga.evolve(p)
         fitness_history.append(ga.grade(p))
     print "=========================================GEN GRADE HISTORY========================================="
     for datum in fitness_history:
         print datum
 
+
 if __name__ == '__main__':
     # creating folder for files
-    newpath = r'./output'
+    newpath = "./output_"+strftime("%Y-%m-%d %H:%M:%S", gmtime()).replace(" ", "t").replace("-", "_").replace(
+            ":", "_")
     if not os.path.exists(newpath):
         os.makedirs(newpath)
+
+    # setup logging
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s:%(levelname)s:%(name)s:%(message)s',
+        filename=newpath + "/out.log",
+        filemode='a'
+    )
+
+    stdout_logger = logging.getLogger('STDOUT')
+    sl = StreamToLogger(stdout_logger, logging.INFO)
+    sys.stdout = sl
+
+    stderr_logger = logging.getLogger('STDERR')
+    sl = StreamToLogger(stderr_logger, logging.ERROR)
+    sys.stderr = sl
+
     run_ga()
     # nb_classes = 10
     # # input image dimensions
