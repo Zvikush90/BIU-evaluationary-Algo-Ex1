@@ -23,6 +23,8 @@ nb_epoch = 2  # 12
 nb_conv, nb_conv = 5, 5  # 48, 5, 5
 nb_pool, nb_strides = 2, 2
 
+OUTPUT_PATH = ""
+
 
 class CNN:
     def __init__(self, nb_classes, nb_filters, nb_epochs, drop_rate, img_rows, img_cols):
@@ -75,7 +77,7 @@ class CNN:
         print('Test score:', self.score[0])
         print('Test accuracy:', self.score[1])
         # wrting score to file
-        text_file = open("./output/" + str(id) + "_score.txt", "w")
+        text_file = open(OUTPUT_PATH + "/" + str(id) + "_score.txt", "w")
         text_file.write(str(self.score[1]))
         text_file.close()
         return self.score
@@ -87,7 +89,7 @@ class CNN:
     def write_model_to_file(self, id):
         print "Saving model to: " + str(os.getcwd())
         json_string = self.model.to_json()
-        text_file = open("./output/" + str(id) + "_model.txt", "w")
+        text_file = open(OUTPUT_PATH + "/" + str(id) + "_model.txt", "w")
         text_file.write(json_string)
         text_file.close()
 
@@ -106,7 +108,5 @@ class CNN:
         plt.plot(x, vals[0])
         plt.plot(x, vals[1])
         plt.legend(['acc', 'loss'], loc='upper left')
-        #plt.show()
-        plt.savefig("./output/"+str(id) + "_fig")
-
-
+        # plt.show()
+        plt.savefig(OUTPUT_PATH + "/" + str(id) + "_fig")
