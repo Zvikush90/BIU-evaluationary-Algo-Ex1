@@ -29,9 +29,13 @@ def git_handling(newpath):
     for (path, stage), entry in index.entries.items():
         pass
     new_file_path = os.path.join(repo.working_tree_dir, newpath[2:])
-    index.add([new_file_path])  # add a new file to the index
-    #index.remove(['LICENSE'])  # remove an existing one
-    #assert os.path.isfile(os.path.join(repo.working_tree_dir, 'LICENSE'))  # working tree is untouched
+    main_file_path = os.path.join(repo.working_tree_dir, "main.py")
+    ga_file_path = os.path.join(repo.working_tree_dir, "ga.py")
+    model_file_path = os.path.join(repo.working_tree_dir, "model.py")
+
+    index.add([new_file_path, main_file_path, ga_file_path, model_file_path])  # add a new file to the index
+    # index.remove(['LICENSE'])  # remove an existing one
+    # assert os.path.isfile(os.path.join(repo.working_tree_dir, 'LICENSE'))  # working tree is untouched
 
     author = Actor("Zvikush90", "zvikush90@gmail.com.com")
     committer = author
@@ -56,23 +60,18 @@ class StreamToLogger(object):
     def flush(self):
         pass
 
-
-def print_gen(i):
-    print "=========================================GEN " + str(i) + "========================================="
-
-
 def run_ga(newpath):
     model.OUTPUT_PATH = newpath
+    ga.OUTPUT_PATH = newpath
 
-    p_count = 5  # 100
+    p_count = 7  # 100
 
     p = ga.population(p_count)
-    print_gen(0)
-    fitness_history = [ga.grade(p), ]
-    for i in xrange(1):
-        print_gen(i + 1)
-        p = ga.evolve(p)
-        fitness_history.append(ga.grade(p))
+    fitness_history = []
+    for i in xrange(10):
+        ga.print_gen(i)
+        p, fit_list = ga.evolve(p)
+        fitness_history.append(ga.grade(p,fit_list))
     print "=========================================GEN GRADE HISTORY========================================="
     for datum in fitness_history:
         print datum
@@ -85,27 +84,28 @@ if __name__ == '__main__':
     if not os.path.exists(newpath):
         os.makedirs(newpath)
 
-    # setup logging
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format='%(asctime)s:%(levelname)s:%(name)s:%(message)s',
-        filename=newpath + "/out.log",
-        filemode='a'
-    )
+    # for ease of control to console or file
+    if (False):
+        # setup logging
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format='%(asctime)s:%(levelname)s:%(name)s:%(message)s',
+            filename=newpath + "/out.log",
+            filemode='a'
+        )
 
-    stdout_logger = logging.getLogger('STDOUT')
-    sl = StreamToLogger(stdout_logger, logging.INFO)
-    sys.stdout = sl
+        stdout_logger = logging.getLogger('STDOUT')
+        sl = StreamToLogger(stdout_logger, logging.INFO)
+        sys.stdout = sl
 
-    stderr_logger = logging.getLogger('STDERR')
-    sl = StreamToLogger(stderr_logger, logging.ERROR)
-    sys.stderr = sl
+        stderr_logger = logging.getLogger('STDERR')
+        sl = StreamToLogger(stderr_logger, logging.ERROR)
+        sys.stderr = sl
 
     git_handling(newpath)
-
-    print "Test to standard out"
-    raise Exception('Test to standard error')
+    
     run_ga(newpath)
+    git_handling(newpath)
 
 # nb_classes = 10
 # # input image dimensions

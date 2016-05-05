@@ -25,6 +25,9 @@ from model import CNN
 from keras.datasets import mnist
 from keras.utils.np_utils import to_categorical
 
+
+OUTPUT_PATH = ""
+
 nb_classes = 10
 # input image dimensions
 img_rows, img_cols = 28, 28
@@ -44,11 +47,26 @@ Y_test = to_categorical(y_test, nb_classes)
 
 gen_number = 0
 
+lr_min = 0.1
+lr_max = 0.9
+nb_filters_min = 1
+nb_filters_max = 20
+nb_epochs_min = 1
+nb_epochs_max = 5
+dpr_min = 0.0
+dpr_max = 0.5
+
+
+def print_gen(i):
+    print "=========================================GEN " + str(i) + "========================================="
+
+
 def individual():
     'Create a member of the population.'
     # learning rate, nb filters, nb epochs, dropout rate
-    return [round(random.uniform(0.001, 0.6), 3), randint(1, 5), randint(1, 3),
-            round(random.uniform(0.001, 0.5), 3)]  # randint(1,50), randint(1,12)
+    return [round(random.uniform(lr_min, lr_max), 1), randint(nb_filters_min, nb_filters_max),
+            randint(nb_epochs_min, nb_epochs_max),
+            round(random.uniform(dpr_min, dpr_max), 1)]  # randint(1,50), randint(1,12)
 
 
 def population(count):
@@ -57,7 +75,7 @@ def population(count):
 
     count: the number of individuals in the population
     """
-    return [(individual(),i) for i in xrange(count)]
+    return [(individual(), i) for i in xrange(count)]
 
 
 def fitness(individual):
@@ -68,9 +86,9 @@ def fitness(individual):
     target: the target number individuals are aiming for
     """
     arr, id = individual
-    id = str(gen_number)+"_"+str(id)
+    id = str(gen_number) + "_" + str(id)
     print "Current Individual: " + id
-    print "Learning rate - " + str(arr[0])+", Nb filters - " + str(arr[1]) + ", Nb epochs - "\
+    print "Learning rate - " + str(arr[0]) + ", Nb filters - " + str(arr[1]) + ", Nb epochs - " \
           + str(arr[2]) + ", Dropout rate - " + str(arr[3])
     cnn_model = CNN(nb_classes, arr[1], arr[2], arr[3], img_rows, img_cols)
     history = cnn_model.train(arr[0], X_train, Y_train)
@@ -78,7 +96,7 @@ def fitness(individual):
 
     score = cnn_model.test(id, X_test, Y_test)
     cnn_model.write_model_to_file(id)
-    #cnn_model.graph(id, history)
+    # cnn_model.graph(id, history)
 
     # text_file = open(str(id) + "_score.txt", "r")
     # score = text_file.read()
@@ -86,25 +104,31 @@ def fitness(individual):
     return score[1]
 
 
-def grade(pop):
+def grade(pop, fit_list):
     'Find average fitness for a population.'
-    fit_list = [fitness(x) for x in pop]
     print "FITNESS LIST OF GEN: " + str(sorted(fit_list))
     summed = sum(fit_list)
     result = summed / (len(pop) * 1.0)
-    print "GEN GRADE = "+str(result)
+    print "GEN GRADE = " + str(result)
+
+    #writing to file
+    text_file = open(OUTPUT_PATH + "/GEN_GRADE_" + str(gen_number) + ".txt", "w")
+    text_file.write(str(fit_list)+"\n")
+    text_file.write(str(result))
+    text_file.close()
+
+    return result
 
 
 def evolve(pop, retain=0.2, random_select=0.05, mutate=0.01):
-    global gen_number
-    gen_number = gen_number+1
     graded = [(fitness(x), x) for x in pop]
-    graded = [x[1] for x in sorted(graded)]
-    retain_length = int(len(graded) * retain)
-    parents = graded[:retain_length]
+    fit_list = [x[1] for x in sorted(graded)]
+    retain_length = int(len(fit_list) * retain)
+    parents = fit_list[:retain_length]
+
     # randomly add other individuals to
     # promote genetic diversity
-    for individual in graded[retain_length:]:
+    for individual in fit_list[retain_length:]:
         from random import random
         if random_select > random():
             parents.append(individual)
@@ -129,14 +153,18 @@ def evolve(pop, retain=0.2, random_select=0.05, mutate=0.01):
         if mutate > random():
             pos_to_mutate = randint(0, len(individual) - 1)
             if (pos_to_mutate == 0):
-                round(random.uniform(0.001, 0.6), 3)
+                round(random.uniform(lr_min, lr_max), 3)
             elif (pos_to_mutate == 1):
-                randint(1, 5)
+                randint(nb_filters_min, nb_filters_max)
             elif (pos_to_mutate == 2):
-                randint(1, 3)
+                randint(nb_epochs_min, nb_epochs_max)
             else:
-                round(random.uniform(0.001, 0.5), 3)
+                round(random.uniform(dpr_min, dpr_max), 1)
             individual[pos_to_mutate] = randint(
                 min(individual), max(individual))
 
-    return parents
+    # advance gen
+    global gen_number
+    gen_number = gen_number + 1
+
+    return parents, fit_list
