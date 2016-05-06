@@ -95,6 +95,8 @@ class Chromosome:
         score = self.model.test(str(gen_number) + "_" + str(self.id), X_test, Y_test)
         self.fitness = score[1]
         self.model.write_model_to_file(str(self.generation) + "_" + str(self.id))
+
+        #change trained status to True
         self.bool_trained = True
 
     def set_fitness(self, num):

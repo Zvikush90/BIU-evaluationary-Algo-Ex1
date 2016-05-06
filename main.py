@@ -66,11 +66,13 @@ def run_ga(newpath):
 
     pop = Population(p_count)
     pop.train_pop()
+    pop.sort_pop()
     pop.save_population()
     for i in xrange(gen_count):
         pop.print_gen()
         pop.evolve()
         pop.train_pop()
+        pop.sort_pop()
         pop.save_population()
         if(pop.all_trained()):
             break
