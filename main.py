@@ -1,11 +1,8 @@
-from keras.datasets import mnist
-from keras.utils.np_utils import to_categorical
 import model
 import os
-from model import CNN
 import ga
+from ga import Population, Chromosome
 import logging
-from logging.handlers import RotatingFileHandler
 import sys
 from time import gmtime, strftime
 
@@ -64,17 +61,22 @@ def run_ga(newpath):
     model.OUTPUT_PATH = newpath
     ga.OUTPUT_PATH = newpath
 
-    p_count = 7  # 100
+    p_count = 20  # 50
+    gen_count = 3 #50
 
-    p = ga.population(p_count)
-    fitness_history = []
-    for i in xrange(10):
-        ga.print_gen(i)
-        p, fit_list = ga.evolve(p)
-        fitness_history.append(ga.grade(p,fit_list))
+    pop = Population(p_count)
+    pop.train_pop()
+    pop.save_population()
+    for i in xrange(gen_count):
+        pop.print_gen()
+        pop.evolve()
+        pop.train_pop()
+        pop.save_population()
+        if(pop.all_trained()):
+            break
+
     print "=========================================GEN GRADE HISTORY========================================="
-    for datum in fitness_history:
-        print datum
+    print pop.get_fit_history()
 
 
 if __name__ == '__main__':
@@ -102,8 +104,6 @@ if __name__ == '__main__':
         sl = StreamToLogger(stderr_logger, logging.ERROR)
         sys.stderr = sl
 
-    git_handling(newpath)
-    
     run_ga(newpath)
     git_handling(newpath)
 

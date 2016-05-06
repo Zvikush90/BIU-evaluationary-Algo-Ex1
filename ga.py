@@ -25,7 +25,6 @@ from model import CNN
 from keras.datasets import mnist
 from keras.utils.np_utils import to_categorical
 
-
 OUTPUT_PATH = ""
 
 nb_classes = 10
@@ -45,126 +44,178 @@ print(X_test.shape[0], 'test samples')
 Y_train = to_categorical(y_train, nb_classes)
 Y_test = to_categorical(y_test, nb_classes)
 
-gen_number = 0
-
 lr_min = 0.1
-lr_max = 0.9
-nb_filters_min = 1
-nb_filters_max = 20
-nb_epochs_min = 1
-nb_epochs_max = 5
+lr_max = 0.7
+nb_filters_min = 1  # 5
+nb_filters_max = 1  # 40
+nb_epochs_min = 1  # 1
+nb_epochs_max = 10  # 10
 dpr_min = 0.0
 dpr_max = 0.5
 
+gen_number = 0
+chrom_id = 0
 
-def print_gen(i):
-    print "=========================================GEN " + str(i) + "========================================="
 
-
-def individual():
+class Chromosome:
     'Create a member of the population.'
+
     # learning rate, nb filters, nb epochs, dropout rate
-    return [round(random.uniform(lr_min, lr_max), 1), randint(nb_filters_min, nb_filters_max),
-            randint(nb_epochs_min, nb_epochs_max),
-            round(random.uniform(dpr_min, dpr_max), 1)]  # randint(1,50), randint(1,12)
+    def __init__(self, params=[]):
+        if (len(params) == 0):
+            self.lr = round(random.uniform(lr_min, lr_max), 1)
+            self.nb_filters = randint(nb_filters_min, nb_filters_max)
+            self.nb_epochs = randint(nb_epochs_min, nb_epochs_max)
+            self.drop_rate = round(random.uniform(dpr_min, dpr_max), 1)
+        else:
+            self.lr = params[0]
+            self.nb_filters = params[1]
+            self.nb_epochs = params[2]
+            self.drop_rate = params[3]
+        # id related
+        self.generation = gen_number
+        global chrom_id
+        self.id = chrom_id
+        chrom_id = chrom_id + 1
+        self.fitness = -1.0
+        # model
+        self.model = None
+        self.bool_trained = False
+
+    def get_train_status(self):
+        return self.bool_trained
+
+    def train(self):
+        print "Current Individual: " + str(self.generation) + "_" + str(self.id)
+        print "Learning rate - " + str(self.lr) + ", Nb filters - " + str(self.nb_filters) + ", Nb epochs - " \
+              + str(self.nb_epochs) + ", Dropout rate - " + str(self.drop_rate)
+        self.model = CNN(nb_classes, self.nb_filters, self.nb_epochs, self.drop_rate, img_rows, img_cols)
+        self.history = self.model.train(self.lr, X_train, Y_train)
+        # cnn_model.load_model_from_file(1)
+        score = self.model.test(str(gen_number) + "_" + str(self.id), X_test, Y_test)
+        self.fitness = score[1]
+        self.model.write_model_to_file(str(self.generation) + "_" + str(self.id))
+        self.bool_trained = True
+
+    def set_fitness(self, num):
+        self.fitness = num
+
+    def get_fitness(self):
+        return self.fitness
+
+    def get_id(self):
+        return self.id
+
+    def get_params(self):
+        return [self.lr, self.nb_filters, self.nb_epochs, self.drop_rate]
 
 
-def population(count):
-    """
-    Create a number of individuals (i.e. a population).
+class Population:
+    def __init__(self, count):
+        self.count = count
+        self.pop_list = [Chromosome() for i in xrange(count)]
+        self.grade = -1.0
+        self.fitness_history = []
 
-    count: the number of individuals in the population
-    """
-    return [(individual(), i) for i in xrange(count)]
+    def print_gen(self):
+        print "=========================================GEN " + str(
+            gen_number) + "========================================="
 
+    def train_pop(self):
+        for ind in self.pop_list:
+            if (ind.get_train_status() == False):
+                ind.train()
 
-def fitness(individual):
-    """
-    Determine the fitness of an individual. Higher is better.
+    def all_trained(self):
+        for ind in self.pop_list:
+            if (ind.get_train_status() == False):
+                return False
+        return True
 
-    individual: the individual to evaluate
-    target: the target number individuals are aiming for
-    """
-    arr, id = individual
-    id = str(gen_number) + "_" + str(id)
-    print "Current Individual: " + id
-    print "Learning rate - " + str(arr[0]) + ", Nb filters - " + str(arr[1]) + ", Nb epochs - " \
-          + str(arr[2]) + ", Dropout rate - " + str(arr[3])
-    cnn_model = CNN(nb_classes, arr[1], arr[2], arr[3], img_rows, img_cols)
-    history = cnn_model.train(arr[0], X_train, Y_train)
-    # cnn_model.load_model_from_file(1)
+    def sort_pop(self):
+        self.pop_list.sort(key=lambda x: x.fitness, reverse=True)
 
-    score = cnn_model.test(id, X_test, Y_test)
-    cnn_model.write_model_to_file(id)
-    # cnn_model.graph(id, history)
+    def get_grade(self):
+        if self.grade == -1.0:
+            num = [x.fitness for x in self.pop_list]
+            summed = sum(num)
+            self.grade = summed / (self.count * 1.0)
+            print "GEN GRADE = " + str(self.grade)
+            self.fitness_history.append(self.grade)
 
-    # text_file = open(str(id) + "_score.txt", "r")
-    # score = text_file.read()
-    # text_file.close()
-    return score[1]
+        return self.grade
 
+    def get_fit_history(self):
+        return self.fitness_history
 
-def grade(pop, fit_list):
-    'Find average fitness for a population.'
-    print "FITNESS LIST OF GEN: " + str(sorted(fit_list))
-    summed = sum(fit_list)
-    result = summed / (len(pop) * 1.0)
-    print "GEN GRADE = " + str(result)
+    def save_population(self):
+        # writing to file
+        text_file = open(OUTPUT_PATH + "/GEN_" + str(gen_number) + ".txt", "w")
+        arr = [(self.pop_list[i].get_id(), self.pop_list[i].get_params(), self.pop_list[i].get_fitness()) for i in
+               xrange(self.count)]
+        text_file.write(
+            str(self.get_grade()) + "\n" + "ID, [Learning rate, Nb filters, Nb epochs, Dropout rate], Fitness\n" + str(
+                arr))
+        text_file.close()
 
-    #writing to file
-    text_file = open(OUTPUT_PATH + "/GEN_GRADE_" + str(gen_number) + ".txt", "w")
-    text_file.write(str(fit_list)+"\n")
-    text_file.write(str(result))
-    text_file.close()
+    def roulette_select(self, num_select):
+        fit_list = [x.fitness for x in self.pop_list]
+        summed = float(sum(fit_list))
 
-    return result
+        rel_fitness = [f / summed for f in fit_list]
+        # Generate probability intervals for each individual
+        probs = [sum(rel_fitness[:i + 1]) for i in range(len(rel_fitness))]
+        # Draw new population
+        new_population = []
+        for n in xrange(num_select):
+            from random import random
+            r = random()
+            for (i, individual) in enumerate(self.pop_list):
+                if r <= probs[i]:
+                    new_population.append(individual)
+                    break
+        return new_population
 
+    def evolve(self, retain=0.2, mutate=0.01):
+        self.sort_pop()
+        parents_length = int(self.count * retain)
 
-def evolve(pop, retain=0.2, random_select=0.05, mutate=0.01):
-    graded = [(fitness(x), x) for x in pop]
-    fit_list = [x[1] for x in sorted(graded)]
-    retain_length = int(len(fit_list) * retain)
-    parents = fit_list[:retain_length]
+        # randomly add other individuals to
+        # promote genetic diversity
+        parents = self.roulette_select(parents_length)
 
-    # randomly add other individuals to
-    # promote genetic diversity
-    for individual in fit_list[retain_length:]:
-        from random import random
-        if random_select > random():
-            parents.append(individual)
+        # advance gen
+        global gen_number
+        gen_number = gen_number + 1
 
-    # crossover parents to create children
-    parents_length = len(parents)
-    desired_length = len(pop) - parents_length
-    children = []
-    while len(children) < desired_length:
-        male = randint(0, parents_length - 1)
-        female = randint(0, parents_length - 1)
-        if male != female:
-            male = parents[male]
-            female = parents[female]
-            half = len(male) / 2
-            child = male[:half] + female[half:]
-            children.append(child)
-    parents.extend(children)
+        # crossover parents to create children
+        num_to_add = self.count - len(parents)
+        children = []
+        while len(children) < num_to_add:
+            male = randint(0, len(parents) - 1)
+            female = randint(0, len(parents) - 1)
+            # if male != female:
+            male = parents[male].get_params()
+            female = parents[female].get_params()
+            index = randint(0,len(male)-1)
+            child1 = male[:index] + female[index:]
+            child2 = female[:index] + male[index:]
+            children.append(Chromosome(child1))
+            children.append(Chromosome(child2))
+        parents.extend(children)
 
-    # mutate some individuals
-    for individual in parents:
-        if mutate > random():
-            pos_to_mutate = randint(0, len(individual) - 1)
-            if (pos_to_mutate == 0):
-                round(random.uniform(lr_min, lr_max), 3)
-            elif (pos_to_mutate == 1):
-                randint(nb_filters_min, nb_filters_max)
-            elif (pos_to_mutate == 2):
-                randint(nb_epochs_min, nb_epochs_max)
-            else:
-                round(random.uniform(dpr_min, dpr_max), 1)
-            individual[pos_to_mutate] = randint(
-                min(individual), max(individual))
-
-    # advance gen
-    global gen_number
-    gen_number = gen_number + 1
-
-    return parents, fit_list
+        # mutate some individuals
+        for individual in parents:
+            from random import random
+            if mutate > random():
+                pos_to_mutate = randint(0, len(individual) - 1)
+                if (pos_to_mutate == 0):
+                    round(random.uniform(lr_min, lr_max), 3)
+                elif (pos_to_mutate == 1):
+                    randint(nb_filters_min, nb_filters_max)
+                elif (pos_to_mutate == 2):
+                    randint(nb_epochs_min, nb_epochs_max)
+                else:
+                    round(random.uniform(dpr_min, dpr_max), 1)
+                individual[pos_to_mutate] = randint(
+                    min(individual), max(individual))

@@ -72,12 +72,12 @@ class CNN:
 
         return history
 
-    def test(self, id, X_test, Y_test):
+    def test(self, id_number, X_test, Y_test):
         self.score = self.model.evaluate(X_test, Y_test, show_accuracy=True, verbose=0)
         print('Test score:', self.score[0])
         print('Test accuracy:', self.score[1])
         # wrting score to file
-        text_file = open(OUTPUT_PATH + "/" + str(id) + "_score.txt", "w")
+        text_file = open(OUTPUT_PATH + "/" + str(id_number) + "_score.txt", "w")
         text_file.write(str(self.score[1]))
         text_file.close()
         return self.score
