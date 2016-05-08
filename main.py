@@ -61,22 +61,21 @@ def run_ga(newpath):
     model.OUTPUT_PATH = newpath
     ga.OUTPUT_PATH = newpath
 
-    p_count = 20  # 50
-    gen_count = 3 #50
+    p_count = 50  # 50
+    gen_count = 50 #50
 
     pop = Population(p_count)
     pop.train_pop()
     pop.sort_pop()
     pop.save_population()
+    pop.set_grade(-1.0)
     for i in xrange(gen_count):
         pop.print_gen()
         pop.evolve()
         pop.train_pop()
         pop.sort_pop()
         pop.save_population()
-        if(pop.all_trained()):
-            break
-
+        pop.set_grade(-1.0)
     print "=========================================GEN GRADE HISTORY========================================="
     print pop.get_fit_history()
 
