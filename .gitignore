@@ -1,0 +1,8 @@
+*.pyc
+checker_inst.txt
+*.zip
+train.txt
+test.txt
+validate1.txt
+validate2.txt
+
