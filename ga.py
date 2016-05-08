@@ -31,6 +31,11 @@ OUTPUT_PATH = ""
 nb_classes = 10
 # input image dimensions
 img_rows, img_cols = 28, 28
+
+# data = np.loadtxt("dataset.txt", delimiter = ",")
+# X = data[:, :-1]
+# Y = data[:, -1]
+
 (X_train, y_train), (X_test, y_test) = mnist.load_data()
 
 X_train = X_train.reshape(X_train.shape[0], 1, img_rows, img_cols)
@@ -48,14 +53,18 @@ Y_test = to_categorical(y_test, nb_classes)
 lr_min = 0.1
 lr_max = 0.4
 nb_filters_min = 1  # 5
-nb_filters_max = 30  # 40
+nb_filters_max = 40  # 40
 nb_epochs_min = 1  # 1
-nb_epochs_max = 5  # 10
+nb_epochs_max = 1  # 10
 dpr_min = 0.0
 dpr_max = 0.4
 
 gen_number = 0
 chrom_id = 0
+
+print "lr: " + str(lr_min) + "," + str(lr_max) + " nb_filters: " + str(nb_filters_min) + "," + str(
+    nb_filters_max) + " nb_epochs: " + str(nb_epochs_min) + "," + str(nb_epochs_max) + " drp: " + str(
+    dpr_min) + "," + str(dpr_max)
 
 
 class Chromosome:
@@ -86,8 +95,8 @@ class Chromosome:
     def get_train_status(self):
         return self.bool_trained
 
-    def set_train_status(self,b):
-        self.bool_trained=b
+    def set_train_status(self, b):
+        self.bool_trained = b
 
     def train(self):
         print "Current Individual: " + str(self.generation) + "_" + str(self.id)
@@ -187,12 +196,13 @@ class Population:
         probs = [sum(rel_fitness[:i + 1]) for i in range(len(rel_fitness))]
         # Draw new population
         new_population = []
-        for n in xrange(num_select):
+        while len(new_population)!=num_select:
             r = rand()
             for (i, individual) in enumerate(self.pop_list):
                 if r <= probs[i]:
-                    new_population.append(individual)
-                    break
+                    if individual not in new_population:
+                        new_population.append(individual)
+                        break
         return new_population
 
     def evolve(self, retain=0.2, mutate=0.01):
@@ -211,11 +221,11 @@ class Population:
         num_to_add = self.count - len(parents)
         children = []
         while len(children) < num_to_add:
-            male = randint(0, len(parents) - 1)
-            female = randint(0, len(parents) - 1)
+            index1 = randint(0, len(parents) - 1)
+            index2 = randint(0, len(parents) - 1)
             # if male != female:
-            male = parents[male].get_params()
-            female = parents[female].get_params()
+            male = parents[index1].get_params()
+            female = parents[index2].get_params()
             index = randint(0, len(male) - 1)
             child1 = male[:index] + female[index:]
             child2 = female[:index] + male[index:]
@@ -240,5 +250,4 @@ class Population:
                 individual.set_fitness(-1.0)
 
         self.past_pop.append(self.pop_list)
-        self.pop_list=parents
-
+        self.pop_list = parents

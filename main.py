@@ -57,12 +57,15 @@ class StreamToLogger(object):
     def flush(self):
         pass
 
+
 def run_ga(newpath):
     model.OUTPUT_PATH = newpath
     ga.OUTPUT_PATH = newpath
 
-    p_count = 50  # 50
-    gen_count = 50 #50
+    p_count = 30  # 50
+    gen_count = 3  # 50
+
+    print "p_count: " + str(p_count) + ", gen_count: " + str(gen_count)
 
     pop = Population(p_count)
     pop.train_pop()
