@@ -19,7 +19,7 @@ import seaborn as sns
 
 batch_size = 10
 nb_classes = 10
-nb_epoch = 35
+nb_epoch = 12
 # LeNet 0.003 - 96,8 #0.005
 lr = 0.005
 print("Batch Size:" + str(batch_size))
@@ -27,7 +27,7 @@ print("Learning Rate: " + str(lr))
 # input image dimensions
 img_rows, img_cols = 28, 28
 # number of convolutional filters to use
-nb_filters = [16,32, 64, 128]
+nb_filters = [32, 64, 128, 128]
 # size of pooling area for max pooling
 nb_pool = 2
 # convolution kernel size
@@ -72,28 +72,40 @@ Y_train = to_categorical(Y_train, nb_classes)
 
 def val_from_file():
     csv = np.genfromtxt('./data/validate1.txt', delimiter=",")
-    X_val = csv[:, 1:785]
-    Y_val = csv[:, 0]
+    X_val1 = csv[:, 1:785]
+    Y_val1 = csv[:, 0]
 
-    X_val = X_val.reshape(X_val.shape[0], 1, img_rows, img_cols)
+    X_val1 = X_val1.reshape(X_val1.shape[0], 1, img_rows, img_cols)
 
-    print('X_val shape:', X_val.shape)
-    print(X_val.shape[0], 'train samples')
-    np.save("ValX", X_val)
-    np.save("ValY", Y_val)
+    np.save("ValX1", X_val1)
+    np.save("ValY1", Y_val1)
 
-    return X_val, Y_val
+    csv = np.genfromtxt('./data/validate2.txt', delimiter=",")
+    X_val2 = csv[:, 1:785]
+    Y_val2 = csv[:, 0]
+
+    X_val2 = X_val2.reshape(X_val2.shape[0], 1, img_rows, img_cols)
+
+    np.save("ValX2", X_val2)
+    np.save("ValY2", Y_val2)
+    return X_val1, Y_val1, X_val2, Y_val2
 
 
 def val_from_past():
-    X_val = np.load("ValX.npy")
-    Y_val = np.load("ValY.npy")
-    return X_val, Y_val
+    X_val1 = np.load("ValX1.npy")
+    Y_val1 = np.load("ValY1.npy")
+    X_val2 = np.load("ValX2.npy")
+    Y_val2 = np.load("ValY2.npy")
+    return X_val1, Y_val1, X_val2, Y_val2
 
 
-X_val, Y_val = val_from_past()
+X_val1, Y_val1, X_val2, Y_val2 = val_from_past()
 
-Y_val = to_categorical(Y_val, nb_classes)
+Y_val1 = to_categorical(Y_val1, nb_classes)
+Y_val2 = to_categorical(Y_val2, nb_classes)
+
+X_train = np.concatenate((X_train, X_val2), axis=0)
+Y_train = np.concatenate((Y_train, Y_val2), axis=0)
 
 
 def Model(weights_path=None):
@@ -132,7 +144,7 @@ def Model(weights_path=None):
     return model
 
 
-model = Model()
+model = Model("mnist_cnn_weights.txt")
 
 sgd = SGD(lr=lr, decay=1e-6, momentum=0.9, nesterov=True)
 model.compile(loss='categorical_crossentropy',
@@ -147,17 +159,35 @@ datagen = ImageDataGenerator(
     horizontal_flip=False)
 
 datagen.fit(X_train)
+callbacks = [ModelCheckpoint("mnist_cnn_weights.txt", monitor='val_loss', verbose=1, save_best_only=True, mode='auto')]
 model.fit_generator(datagen.flow(X_train, Y_train, batch_size=batch_size),
-                    samples_per_epoch=len(X_train), nb_epoch=nb_epoch, validation_data=(X_val, Y_val),
-                    show_accuracy=True)
+                    samples_per_epoch=len(X_train), nb_epoch=nb_epoch, validation_data=(X_val1, Y_val1),
+                    show_accuracy=True, callbacks=callbacks)
 
-model.save_weights(("lenet_l_%f_b_%d_e_%d?weights.txt"%(lr,batch_size,nb_epoch)))
+
+def predict_test(model):
+    csv = np.genfromtxt('./data/validate1.txt', delimiter=",")
+    X_val = csv[:, 1:785]
+    Y_val = csv[:, 0]
+
+    X_val = X_val.reshape(X_val.shape[0], 1, img_rows, img_cols)
+
+    predictions = model.predict_classes(X_val, verbose=True)
+    # wrting output to file
+    text_file = open("validate1-predict.txt", "w")
+
+    for p in predictions:
+        text_file.write(str(p)+"\n")
+
+    text_file.close()
+
+
+model.load_weights("mnist_cnn_weights.txt")
+predict_test(model)
+
+# model.save_weights(("lenet_l_%f_b_%d_e_%d?weights.txt"%(lr,batch_size,nb_epoch)))
 # model.fit(X_train, Y_train, nb_epoch=nb_epoch, batch_size=batch_size, validation_data=(X_val, Y_val), verbose=1,
 #         show_accuracy=True, callbacks=[checkpointer])
 
 
 # model.load_weights("mnist_cnn_weights.txt")
-
-
-
-
