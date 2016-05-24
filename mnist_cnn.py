@@ -14,14 +14,11 @@ from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
 from keras.utils.np_utils import to_categorical
 
-# For plotting
-import seaborn as sns
-
 batch_size = 10
 nb_classes = 10
-nb_epoch = 12
+nb_epoch = 100
 # LeNet 0.003 - 96,8 #0.005
-lr = 0.005
+lr = 0.001
 print("Batch Size:" + str(batch_size))
 print("Learning Rate: " + str(lr))
 # input image dimensions
@@ -144,7 +141,7 @@ def Model(weights_path=None):
     return model
 
 
-model = Model("mnist_cnn_weights.txt")
+model = Model()
 
 sgd = SGD(lr=lr, decay=1e-6, momentum=0.9, nesterov=True)
 model.compile(loss='categorical_crossentropy',
@@ -177,7 +174,7 @@ def predict_test(model):
     text_file = open("validate1-predict.txt", "w")
 
     for p in predictions:
-        text_file.write(str(p)+"\n")
+        text_file.write(str(p) + "\n")
 
     text_file.close()
 
