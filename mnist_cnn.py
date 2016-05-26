@@ -13,12 +13,14 @@ from keras.callbacks import ModelCheckpoint
 from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
 from keras.utils.np_utils import to_categorical
+from time import gmtime, strftime
 
-WEIGHTS_FILE ="mnist_cnn_weights_less_shift.txt"
-batch_size = 10
+WEIGHTS_FILE = "mnist_cnn_weights"+strftime("%Y-%m-%d_%H-%M-%S", gmtime())+".txt"
+print(WEIGHTS_FILE)
+batch_size = 50
 nb_classes = 10
 nb_epoch = 100
-# LeNet 0.003 - 96,8 #0.005
+
 lr = 0.001
 print("Batch Size:" + str(batch_size))
 print("Learning Rate: " + str(lr))
@@ -117,22 +119,22 @@ def Model(weights_path=None):
     model.add(Convolution2D(nb_filters[1], nb_conv, nb_conv))
     model.add(Activation('relu'))
     model.add(MaxPooling2D(pool_size=(nb_pool, nb_pool)))
-    model.add(Dropout(0.25))
+    #model.add(Dropout(0.25))
 
     model.add(Convolution2D(nb_filters[2], nb_conv, nb_conv))
     model.add(Activation('relu'))
     model.add(MaxPooling2D(pool_size=(nb_pool, nb_pool)))
-    model.add(Dropout(0.25))
+    #model.add(Dropout(0.25))
 
     model.add(Convolution2D(nb_filters[3], nb_conv, nb_conv))
     model.add(Activation('relu'))
     model.add(MaxPooling2D(pool_size=(nb_pool, nb_pool)))
-    model.add(Dropout(0.25))
+    #model.add(Dropout(0.25))
 
     model.add(Flatten())
     model.add(Dense(128))
     model.add(Activation('relu'))
-    model.add(Dropout(0.5))
+    #model.add(Dropout(0.5))
     model.add(Dense(nb_classes))
     model.add(Activation('softmax'))
 
@@ -141,30 +143,6 @@ def Model(weights_path=None):
 
     return model
 
-
-model = Model()
-
-adam = Adam(lr=lr, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
-model.compile(loss='categorical_crossentropy',
-              optimizer=adam)
-
-datagen = ImageDataGenerator(
-    featurewise_center=False,
-    featurewise_std_normalization=False,
-    rotation_range=10,
-    width_shift_range=0.1,
-    height_shift_range=0.1,
-    horizontal_flip=False)
-
-datagen.fit(X_train)
-callbacks = [ModelCheckpoint(WEIGHTS_FILE, monitor='val_loss', verbose=1, save_best_only=True, mode='auto')]
-model.fit_generator(datagen.flow(X_train, Y_train, batch_size=batch_size),
-                    samples_per_epoch=len(X_train), nb_epoch=nb_epoch, validation_data=(X_val1, Y_val1),
-                    show_accuracy=True, callbacks=callbacks)
-
-
-# model.fit(X_train, Y_train, nb_epoch=nb_epoch, batch_size=batch_size, validation_data=(X_val1, Y_val1), verbose=1,
-#         show_accuracy=True, callbacks=callbacks)
 
 def predict_test(model):
     csv = np.genfromtxt('./data/validate1.txt', delimiter=",")
@@ -175,7 +153,7 @@ def predict_test(model):
 
     predictions = model.predict_classes(X_val, verbose=True)
     # wrting output to file
-    text_file = open("validate1-predict.txt", "w")
+    text_file = open("./mnist-checker/" + WEIGHTS_FILE, "w")
 
     for p in predictions:
         text_file.write(str(p) + "\n")
@@ -183,10 +161,32 @@ def predict_test(model):
     text_file.close()
 
 
-model.load_weights(WEIGHTS_FILE)
-predict_test(model)
+def main():
+    model = Model()
+
+    adam = Adam(lr=lr, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=adam)
+
+    datagen = ImageDataGenerator(
+        featurewise_center=False,
+        featurewise_std_normalization=False,
+        rotation_range=10,
+        width_shift_range=0.1,
+        height_shift_range=0.1,
+        horizontal_flip=False)
+
+    datagen.fit(X_train)
+    callbacks = [ModelCheckpoint(WEIGHTS_FILE, monitor='val_loss', verbose=1, save_best_only=True, mode='auto')]
+    model.fit_generator(datagen.flow(X_train, Y_train, batch_size=batch_size),
+                        samples_per_epoch=len(X_train), nb_epoch=nb_epoch, validation_data=(X_val1, Y_val1),
+                        show_accuracy=True, callbacks=callbacks)
+
+    # model.fit(X_train, Y_train, nb_epoch=nb_epoch, batch_size=batch_size, validation_data=(X_val1, Y_val1), verbose=1,
+    #         show_accuracy=True, callbacks=callbacks)
+    model.load_weights(WEIGHTS_FILE)
+    predict_test(model)
 
 
-
-
-# model.load_weights(WEIGHTS_FILE)
+if __name__ == "__main__":
+    main()
