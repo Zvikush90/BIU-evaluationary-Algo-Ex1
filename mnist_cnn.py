@@ -8,12 +8,13 @@ from keras.datasets import mnist
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Convolution2D, MaxPooling2D, ZeroPadding2D
-from keras.optimizers import SGD
+from keras.optimizers import SGD, Adam
 from keras.callbacks import ModelCheckpoint
 from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
 from keras.utils.np_utils import to_categorical
 
+WEIGHTS_FILE ="mnist_cnn_weights_less_shift.txt"
 batch_size = 10
 nb_classes = 10
 nb_epoch = 100
@@ -143,24 +144,27 @@ def Model(weights_path=None):
 
 model = Model()
 
-sgd = SGD(lr=lr, decay=1e-6, momentum=0.9, nesterov=True)
+adam = Adam(lr=lr, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
 model.compile(loss='categorical_crossentropy',
-              optimizer=sgd)
+              optimizer=adam)
 
 datagen = ImageDataGenerator(
     featurewise_center=False,
     featurewise_std_normalization=False,
     rotation_range=10,
-    width_shift_range=0.2,
-    height_shift_range=0.2,
+    width_shift_range=0.1,
+    height_shift_range=0.1,
     horizontal_flip=False)
 
 datagen.fit(X_train)
-callbacks = [ModelCheckpoint("mnist_cnn_weights.txt", monitor='val_loss', verbose=1, save_best_only=True, mode='auto')]
+callbacks = [ModelCheckpoint(WEIGHTS_FILE, monitor='val_loss', verbose=1, save_best_only=True, mode='auto')]
 model.fit_generator(datagen.flow(X_train, Y_train, batch_size=batch_size),
                     samples_per_epoch=len(X_train), nb_epoch=nb_epoch, validation_data=(X_val1, Y_val1),
                     show_accuracy=True, callbacks=callbacks)
 
+
+# model.fit(X_train, Y_train, nb_epoch=nb_epoch, batch_size=batch_size, validation_data=(X_val1, Y_val1), verbose=1,
+#         show_accuracy=True, callbacks=callbacks)
 
 def predict_test(model):
     csv = np.genfromtxt('./data/validate1.txt', delimiter=",")
@@ -179,12 +183,10 @@ def predict_test(model):
     text_file.close()
 
 
-model.load_weights("mnist_cnn_weights.txt")
+model.load_weights(WEIGHTS_FILE)
 predict_test(model)
 
-# model.save_weights(("lenet_l_%f_b_%d_e_%d?weights.txt"%(lr,batch_size,nb_epoch)))
-# model.fit(X_train, Y_train, nb_epoch=nb_epoch, batch_size=batch_size, validation_data=(X_val, Y_val), verbose=1,
-#         show_accuracy=True, callbacks=[checkpointer])
 
 
-# model.load_weights("mnist_cnn_weights.txt")
+
+# model.load_weights(WEIGHTS_FILE)
