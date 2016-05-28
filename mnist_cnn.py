@@ -99,9 +99,6 @@ X_val1, Y_val1, X_val2, Y_val2 = val_from_file()
 Y_val1 = to_categorical(Y_val1, nb_classes)
 Y_val2 = to_categorical(Y_val2, nb_classes)
 
-X_train = np.concatenate((X_train, X_val1), axis=0)
-Y_train = np.concatenate((Y_train, Y_val1), axis=0)
-
 X_train = np.concatenate((X_train, X_val2), axis=0)
 Y_train = np.concatenate((Y_train, Y_val2), axis=0)
 
@@ -165,6 +162,9 @@ def main():
         nb_epoch = 0
         global WEIGHTS_FILE
         WEIGHTS_FILE = sys.argv[2]
+        global X_train, Y_train, X_val1, Y_val1
+        X_train = np.concatenate((X_train, X_val1), axis=0)
+        Y_train = np.concatenate((Y_train, Y_val1), axis=0)
 
     adam = Adam(lr=lr, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
     model.compile(loss='categorical_crossentropy',
