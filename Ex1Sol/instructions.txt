@@ -1,0 +1,11 @@
+Dependencies:
+	Theano, Keras, numpy
+	
+Make sure folder data with validate1.txt validate2.txt and test.txt is next to script when running
+
+Train:
+Run script mnist_cnn.py with argument “train” outputs weights to mnist_cnn_weights.txt
+	python mnist_cnn.py train
+Test:
+Run script mnist_cnn.py with arguments “test ./mnist_cnn_weights.txt” outputs my solution “204785240.txt”
+	python test ./mnist_cnn_weights.txt
