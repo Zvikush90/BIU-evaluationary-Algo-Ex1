@@ -162,6 +162,8 @@ def main():
         nb_epoch = 0
         global WEIGHTS_FILE
         WEIGHTS_FILE = sys.argv[2]
+
+    elif(sys.argv[1] == "add"):
         global X_train, Y_train, X_val1, Y_val1
         X_train = np.concatenate((X_train, X_val1), axis=0)
         Y_train = np.concatenate((Y_train, Y_val1), axis=0)
